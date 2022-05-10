@@ -8,7 +8,7 @@
 WiFiUDP Udp;
 unsigned int localUdpPort = 4210;  // local port to listen on
 char incomingPacket[255];  // buffer for incoming packets
-char  replyPacket[] = "OK";  // a reply string to send back
+char replyPacket[] = "OK";  // a reply string to send back
 
 /**
  * @brief Parpadea el LED de la placa NodeMCU.
@@ -28,13 +28,15 @@ void blink(int period, int iters){
 void setup() {
   Serial.begin(9600);
 
-  // Motors setup:
+  // Motor setup
   setupMotor();
 
-  // WiFi setup:
+  // WiFi setup
   Serial.println("Connecting to " + String(SSID) + "...");
   WiFi.config(IPAddress(LOCAL_IP), IPAddress(GATEWAY), IPAddress(SUBNET));
   WiFi.begin(SSID, PASSWORD);
+
+  // Starting connection
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
@@ -44,6 +46,7 @@ void setup() {
   Serial.println(" Connected!");
   blink(150, 2);
 
+  // Starts listening UDP Port to receive data
   Udp.begin(localUdpPort);
   Serial.printf("Now listening at IP %s, UDP port %d\n", WiFi.localIP().toString().c_str(), localUdpPort);
 }
@@ -51,23 +54,26 @@ void setup() {
 void loop() {
   String payload;
   
+  // Data reading
   int packetSize = Udp.parsePacket();
-  if (packetSize)
+  if (packetSize) // New data available
   {
     int len = Udp.read(incomingPacket, 255);
-    if (len > 0)
+    if (len > 0)  // Correct data received
     {
-      incomingPacket[len] = 0;
+      incomingPacket[len] = 0;  // Deletes the termination character.
     }
-    payload = String(incomingPacket);
+
+    payload = String(incomingPacket); // Stores data as a String
     //Serial.println("Payload: " + payload);
 
-    // send back a reply, to the IP address and port we got the packet from
+    // Send back a reply, to the IP address and port we got the packet from
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
     Udp.write(replyPacket);
     Udp.endPacket();
   }
 
+  // Decission
   if      (payload.compareTo("UP"))     { moveMotor( SPEED); }
   else if (payload.compareTo("DOWN"))   { moveMotor(-SPEED); }
   else if (payload.compareTo("STOP"))   { moveMotor(0); }
